@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CHUKUM — Folha de Pagamento</title>
+<meta name="description" content="Planilha e gestão de folha de pagamento — CHUKUM" />
+<script src="https://cdn.tailwindcss.com"></script>
+<style>.container{max-width:1100px}</style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+<header class="bg-white shadow-sm">
+<div class="container mx-auto px-6 py-4 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-md bg-sky-600 flex items-center justify-center text-white font-bold">C</div>
+<div>
+<h1 class="text-lg font-semibold">CHUKUM</h1>
+<p class="text-xs text-slate-500">Ferramenta simples para gerar folha de pagamento</p>
+</div>
+</div>
+<nav class="text-sm text-slate-600 hidden md:flex gap-4">
+<a href="#tabela" class="hover:underline">Tabela</a>
+<a href="#exportar" class="hover:underline">Exportar</a>
+</nav>
+</div>
+</header>
+<main class="container mx-auto px-6 py-8">
+<section class="grid md:grid-cols-2 gap-8 items-start">
+<div class="bg-white p-6 rounded-lg shadow">
+<h2 class="text-2xl font-bold">Folha de Pagamento - CHUKUM</h2>
+<p class="mt-2 text-slate-600">Preencha os dados dos colaboradores e gere a folha com cálculos automáticos: horas extras, faltas proporcionais, descontos e salário líquido.</p>
+<div class="mt-6">
+<!-- Campos de entrada iguais aos seus originais -->
+...
+</div>
+</div>
+<div class="bg-white p-6 rounded-lg shadow">
+<h3 class="text-xl font-semibold">Resumo rápido</h3>
+<div class="mt-4 space-y-2 text-sm text-slate-600">
+<div>Preencha e clique em <strong>Adicionar à tabela</strong> para gerar as linhas.</div>
+<div>Você pode exportar a tabela como CSV para abrir no Excel.</div>
+</div>
+<div id="exportar" class="mt-6 flex gap-2">
+<button id="exportCsv" class="bg-green-600 text-white px-4 py-2 rounded">Exportar CSV</button>
+<button id="exportJson" class="border px-4 py-2 rounded">Exportar JSON</button>
+<button id="downloadXlsx" class="border px-4 py-2 rounded">Baixar Excel (gerado no navegador)</button>
+</div>
+<div class="mt-6 text-sm text-slate-500">Observação: valores e fórmulas são um modelo — revise conforme a legislação local e holerites da sua empresa.</div>
+</div>
+</section>
+<section id="tabela" class="mt-8 bg-white p-6 rounded-lg shadow">
+<h3 class="text-lg font-semibold">Tabela da Folha</h3>
+<div class="overflow-x-auto mt-4">
+<table id="sheetTable" class="min-w-full table-auto text-sm">
+<thead>
+<tr class="bg-slate-100 text-left">
+<th class="px-3 py-2">Nome</th>
+<th class="px-3 py-2">Cargo</th>
+<th class="px-3 py-2">Data Admissão</th>
+<th class="px-3 py-2">Salário Base</th>
+<th class="px-3 py-2">Horas Extras (R$)</th>
+<th class="px-3 py-2">Horista (R$)</th>
+<th class="px-3 py-2">Descontos</th>
+<th class="px-3 py-2">Faltas/Dias</th>
+<th class="px-3 py-2">Total Descontos</th>
+<th class="px-3 py-2">Salário Líquido</th>
+<th class="px-3 py-2">Ações</th>
+</tr>
+</thead>
+<tbody id="tbody"></tbody>
+</table>
+</div>
+</section>
+<footer class="mt-8 text-sm text-slate-500">© CHUKUM — Folha de Pagamento</footer>
+</main>
+<script>
+// Função para formatar valores em R$
+function formatMoney(v){return Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+
+// Cálculos e criação de linha (igual ao seu original)
+...
+
+// EXPORT CSV UTF-8 correto
+document.getElementById('exportCsv').addEventListener('click', function(){
+    const csv = tableToCSV();
+    const BOM = '\uFEFF'; // forçar UTF-8
+    const blob = new Blob([BOM + csv], {type: 'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'folha_chukum.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+});
+
+// EXPORT JSON
+...
+
+// EXPORT XLSX com fonte compatível
+document.getElementById('downloadXlsx').addEventListener('click', async function(){
+    if(typeof XLSX === 'undefined'){
+        const script = document.createElement('script');
+        script.src = 'https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js';
+        document.head.appendChild(script);
+        script.onload = ()=>generateXlsx();
+    } else generateXlsx();
+});
+
+function generateXlsx(){
+    const ws_data = [];
+    const headers = ['Nome','Cargo','Data de admissão','Salário Base','Horas Extras (R$)','Horista (R$)','Descontos (R$)','Faltas/Dias','Total Descontos (R$)','Salário Líquido (R$)'];
+    ws_data.push(headers);
+    document.querySelectorAll('#tbody tr').forEach(tr=>{
+        const cols = Array.from(tr.querySelectorAll('td')).slice(0,10).map(td=>td.innerText.replace(/R\$ /g,'').replace(/\./g,','));
+        ws_data.push(cols);
+    });
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+    // Forçar fonte compatível
+    for(let R=0; R<ws_data.length; R++){
+        for(let C=0; C<ws_data[R].length; C++){
+            const cell_address = XLSX.utils.encode_cell({r:R, c:C});
+            if(!ws[cell_address]) continue;
+            ws[cell_address].s = { font: { name: "Calibri", sz: 11 } };
+        }
+    }
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Folha');
+    XLSX.writeFile(wb, 'folha_chukum.xlsx');
+}
+</script>
+</body>
+</html>
